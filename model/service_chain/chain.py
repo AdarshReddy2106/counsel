@@ -8,8 +8,8 @@ import networkx as nx
 import numpy as np
 from scipy import stats
 
-from component import Component
-from state import State
+from .component import Component
+from .state import State
 
 
 class Chain(object):

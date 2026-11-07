@@ -5,7 +5,7 @@ import time
 from collections import Counter, OrderedDict
 from typing import List, Union
 
-from state import State
+from .state import State
 
 
 class Component(object):

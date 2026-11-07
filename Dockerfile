@@ -25,8 +25,7 @@ COPY train.py           \
 RUN chown -R nobody:nogroup /counsel
 USER nobody
 
-# CMD ["bash", "model_eval.sh", "&&", \
-#      "python3", "inference.py"]
+CMD bash model_eval.sh && python3 inference.py
 
-
-CMD ["python3", "train.py", "-n", "std", "-k", "0.05", "-e", "1000"]
+# Comment out the default training command
+#CMD ["python3", "train.py", "-n", "std", "-k", "0.05", "-e", "1000"]

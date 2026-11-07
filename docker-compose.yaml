@@ -1,17 +1,12 @@
 services:
   loadserver:
-    image: load-gen
-    build: ./load-gen
+    image: themonocledhamster/load-gen
     container_name: loadserver
-    expose:
-      - "8000"
-    ports:
-      - "8000:8000"
+    network_mode: "host"
     environment:
       - "LOADSERVER_PORT=8000"
       - "LOADSERVER_HOST=0.0.0.0"
   model:
-    image: counsel
-    build: .
+    image: themonocledhamster/counsel
     container_name: counsel
     network_mode: "host"

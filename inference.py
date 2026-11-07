@@ -21,7 +21,7 @@ for name, knob in [('op',0.03), ('std',0.05), ('up',0.07)]:
 
     time_tracker = []
 
-    dir = 'a3c/'
+    dir = 'data/'
     out_dir = './infer_logs/'
     out_path = os.path.join(out_dir, 'inference.csv')
     fix = lambda x: x + '/'

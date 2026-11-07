@@ -302,7 +302,7 @@ def ppo(env_fn, actor_critic=core.GCNActorCritic, ac_kwargs=dict(), seed=0,
         for t in range(local_steps_per_epoch):
             a, v, logp = ac.step(torch.as_tensor(o),torch.as_tensor(m))
 
-            next_o, m, r, d, _ = env.step(a)
+            next_o, m, r, d, *_ = env.step(a)
             ep_ret += r
             ep_len += 1
 
