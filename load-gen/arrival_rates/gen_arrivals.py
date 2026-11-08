@@ -1,4 +1,3 @@
-import psycopg2 as pg
 import numpy as np
 import csv
 import os
@@ -9,6 +8,8 @@ dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),str(timeframe))
 
 
 if __name__ == '__main__':
+    import importlib
+    pg = importlib.import_module("psycopg2")
 
     conn = pg.connect(dbname='Traces', user='adi')
     cur = conn.cursor()

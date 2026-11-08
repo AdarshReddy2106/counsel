@@ -264,6 +264,26 @@ class CloudEnv(gym.Env):
         return self.get_obs()
 
 
+    def get_contract_state(self, arrival_rate:float=0.0)->dict:
+        """
+        Return validated observation state dictionary.
+        """
+        comp = self.components[self.act_comp] if self.act_comp != -1 else None
+        obs, mask = self.get_obs(comp, arrival_rate)
+        from schema import ObservationContract, validate_observation
+        v_obs, v_mask = validate_observation(
+            obs, mask, ncomp=self.ncomp, nactions=self.action_space.n
+        )
+        contract = ObservationContract(
+            obs_flat=v_obs.reshape(-1).tolist(),
+            mask=v_mask.tolist(),
+            act_type=int(self.act_type),
+            act_comp=int(self.act_comp),
+            slo_latency_ms=float(self.slo_latency),
+        )
+        return contract.model_dump() if hasattr(contract, "model_dump") else contract.dict()
+
+
     def terminate(self)->None:
         # PLACEHOLDER
         pass

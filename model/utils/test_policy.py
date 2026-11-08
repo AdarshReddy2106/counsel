@@ -41,7 +41,8 @@ def load_policy_and_env(fpath, itr='last', params=None):
     env = CloudEnv(log_dir=params['log_dir'], steps_per_epoch=params['steps_per_epoch'],
                    budget=params['budget'], slo_latency=params['slo_latency'],
                    overrun_lim=params['overrun_lim'], mode=params['mode'],
-                   nconf=params['nconf'], ncomp=params['ncomp'])
+                   nconf=params['nconf'], ncomp=params['ncomp'],
+                   port=params.get('port', 8000))
 
     return env, get_action
 
@@ -52,7 +53,10 @@ def load_pytorch_policy(fpath, itr):
     fname = osp.join(fpath,'pyt_save', 'model'+itr+'.pt')
     try:
         print("\n\n\n >>> ", fname, "\n\n\n")
-        model = torch.load(f=fname)
+        try:
+            model = torch.load(f=fname, map_location='cpu', weights_only=False)
+        except TypeError:
+            model = torch.load(f=fname, map_location='cpu')
         print("model loaded successfully",flush=True)
     except Exception as e:
         print(e)

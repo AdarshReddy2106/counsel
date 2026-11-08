@@ -1,6 +1,37 @@
-from mpi4py import MPI
-import os, subprocess, sys
+import importlib
+import os
+import subprocess
+import sys
+from typing import Any
+
 import numpy as np
+
+
+class _SingleProcComm:
+    def Get_rank(self) -> int:
+        return 0
+
+    def Get_size(self) -> int:
+        return 1
+
+    def Allreduce(self, sendbuf: Any, recvbuf: Any, op: Any = None) -> None:
+        np.copyto(recvbuf, sendbuf)
+
+    def Bcast(self, x: Any, root: int = 0) -> None:
+        pass
+
+
+class _SingleProcMPI:
+    COMM_WORLD = _SingleProcComm()
+    SUM = "SUM"
+    MIN = "MIN"
+    MAX = "MAX"
+
+
+try:
+    MPI: Any = importlib.import_module("mpi4py").MPI
+except ImportError:
+    MPI = _SingleProcMPI()
 
 
 def mpi_fork(n, bind_to_core=False):
