@@ -1,0 +1,67 @@
+project:
+  name: "counsel-mlops"
+  version: "1.0.0"
+  schema_version: "1.0.0"
+  datacenter_country_code: "NO"
+  emergency_fallback_mode: "off"
+  experiment_name: "std"
+
+environment:
+  mode: "synthetic"
+  nconf: 5
+  ncomp: 3
+  components:
+    - "Firewall"
+    - "WebServer"
+    - "Database"
+  flavors:
+    - "none"
+    - "2"
+    - "5"
+    - "10"
+    - "13"
+    - "19"
+  budget:
+    - 2500
+    - 3600
+  slo_latency_ms: 150.0
+  train_slo_latency_ms: 200.0
+  overrun_lim: 0.20
+  knob: 0.05
+  steps_per_epoch: 1000
+  load_server_host: "127.0.0.1"
+  load_server_port: 8000
+
+policy:
+  active_policy: "ppo"
+  available_policies:
+    - "ppo"
+    - "heuristic"
+    - "random_forest"
+    - "decision_transformer"
+    - "patchtst"
+  ppo_model_dir: "data/std-f5-c3"
+  ppo_checkpoint: "last"
+  eval_seed: 42
+
+feature_store:
+  offline_parquet_path: "data/feature_store/offline_store.parquet"
+  metadata_json_path: "data/feature_store/metadata.json"
+  infer_log_dir: "infer_logs/feature_store_run"
+  num_episodes: 20
+  seed: 42
+  step_interval_seconds: 5
+
+serving:
+  host: "0.0.0.0"
+  port: 8080
+  cache_enabled: "yes"
+  cache_maxsize: 512
+
+monitoring:
+  slo_target_ratio: 0.99
+  psi_bins: 10
+  psi_moderate_threshold: 0.10
+  psi_significant_threshold: 0.25
+  release_gate_min_reward: 350.0
+  release_gate_max_budget_overruns: 0
