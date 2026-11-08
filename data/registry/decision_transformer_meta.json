@@ -1,0 +1,11 @@
+{
+  "model_name": "decision_transformer",
+  "hf_repo_id": "edbeeching/decision-transformer-gym-hopper-medium",
+  "loaded_from_hub": true,
+  "context_length": 8,
+  "target_return_conditioning": 750.0,
+  "num_parameters": 998565,
+  "train_sequences": 3605,
+  "train_accuracy": 0.9705963730812073,
+  "safetensors_artifact": "data\\registry\\decision_transformer.safetensors"
+}

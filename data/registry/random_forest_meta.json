@@ -1,0 +1,8 @@
+{
+  "model_name": "random_forest",
+  "train_rows": 7201,
+  "val_rows": 1799,
+  "point_in_time_cutoff": "2026-11-06T10:00:00+00:00",
+  "val_breach_prediction_accuracy": 0.9688715953307393,
+  "sha256": "f81554b10742b3e02b32f9886cfbd29bbfda45c6cd3a095bfacd0f8a7281703a"
+}

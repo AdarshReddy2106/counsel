@@ -1,0 +1,13 @@
+{
+  "model_name": "patchtst",
+  "hf_repo_id": "ibm-granite/granite-timeseries-patchtst",
+  "loaded_from_hub": true,
+  "context_length": 16,
+  "patch_length": 4,
+  "patch_stride": 2,
+  "num_input_channels": 10,
+  "num_parameters": 407372,
+  "train_windows": 3605,
+  "train_accuracy": 0.993619978427887,
+  "safetensors_artifact": "data\\registry\\patchtst.safetensors"
+}

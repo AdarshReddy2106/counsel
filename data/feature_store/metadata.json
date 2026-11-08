@@ -1,0 +1,91 @@
+{
+  "schema_version": "1.0.0",
+  "created_at_utc": "2026-11-07T11:24:02.444490+00:00",
+  "lineage": {
+    "config_path": "configs\\config.yaml",
+    "config_sha256": "0d610e8a0469f886a36453b07d2d97189be5810343b04b478fadc11b94aafb88",
+    "source_model_path": "data\\std-f5-c3\\pyt_save\\model.pt",
+    "source_model_sha256": "30320d7ee0c9ac441dcc3bef8b398a1a2b59b5b6429f83b5a230094498a789d4",
+    "parquet_path": "data\\feature_store\\offline_store.parquet",
+    "parquet_sha256": "9377ced38a07f85e4635448b1badd41bff7de6ea94b46d9862a563b29c90336b"
+  },
+  "feature_groups": {
+    "graph_and_zscore_obs": [
+      "obs_0",
+      "obs_1",
+      "obs_2",
+      "obs_3",
+      "obs_4",
+      "obs_5",
+      "obs_6",
+      "obs_7",
+      "obs_8",
+      "obs_9",
+      "obs_10",
+      "obs_11",
+      "obs_12",
+      "obs_13",
+      "obs_14",
+      "obs_15",
+      "obs_16",
+      "obs_17",
+      "obs_18",
+      "obs_19",
+      "obs_20",
+      "obs_21",
+      "obs_22",
+      "obs_23"
+    ],
+    "action_mask": [
+      "mask_0",
+      "mask_1",
+      "mask_2",
+      "mask_3",
+      "mask_4",
+      "mask_5"
+    ],
+    "readable_resources": [
+      "fw_cpu",
+      "ws_cpu",
+      "db_cpu",
+      "fw_mem",
+      "ws_mem",
+      "db_mem",
+      "fw_util",
+      "ws_util",
+      "db_util",
+      "arrival_rate",
+      "act_type",
+      "act_comp",
+      "budget_overrun_ratio"
+    ],
+    "timestamps": [
+      "event_time",
+      "ingestion_time",
+      "processing_time"
+    ],
+    "target": [
+      "action",
+      "action_flavor",
+      "reward",
+      "slo_breach"
+    ]
+  },
+  "summary": {
+    "num_episodes": 20,
+    "total_rows": 9000,
+    "contract_checks_passed": 9000,
+    "average_ep_ret": 555.3522660786142,
+    "std_ep_ret": 365.3189609241227,
+    "max_ep_ret": 1182.6275094002906,
+    "min_ep_ret": 6.827687260632135,
+    "average_ep_len": 450.0,
+    "total_slo_breaches": 2184,
+    "total_budget_overruns": 0,
+    "action_distribution": {
+      "0": 281,
+      "2": 6866,
+      "5": 1853
+    }
+  }
+}
