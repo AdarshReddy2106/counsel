@@ -146,3 +146,12 @@ uvicorn app:app --host 0.0.0.0 --port 8080
 # 7. Run full automated test suite
 pytest tests/test_all.py -v
 ```
+
+---
+
+## 10. Contributors
+
+- **Adarsh Reddy** ([@AdarshReddy2106](https://github.com/AdarshReddy2106))
+- **Varun Sai** ([@Varun02-Sai](https://github.com/Varun02-Sai))
+- **Yasin Khilji** ([@YasinKhilji](https://github.com/YasinKhilji))
+
