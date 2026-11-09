@@ -29,9 +29,13 @@ class PolicyAdapter(ABC):
         mask: Optional[Union[np.ndarray, List[float]]] = None,
     ) -> int:
         v_obs, v_mask = validate_observation(obs, mask)
+        # checks that the input is a valid (3, 8) matrix, has no NaN or Inf sensor bugs, and has no negative traffic numbers. If bad data comes in, it raises an error immediately
+        
         raw_action = self._predict_impl(v_obs, v_mask)
+        #Calls the specific model's internal logic
         return validate_action(raw_action, v_mask)
-
+        # It verifies that raw_action is an integer between 0 and 5
+    
     @abstractmethod
     def _predict_impl(self, obs_2d: np.ndarray, mask_1d: np.ndarray) -> int:
         """Run model prediction on validated (3, 8) obs and (6,) mask."""

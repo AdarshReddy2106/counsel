@@ -1,8 +1,17 @@
+import os
+import sys
 from typing import Any, Dict, List
 
-import numpy as np
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
 
-from .base import PolicyAdapter
+import numpy as np  # noqa: E402
+
+try:
+    from .base import PolicyAdapter  # noqa: E402
+except ImportError:
+    from adapters.base import PolicyAdapter  # noqa: E402
 
 
 class HeuristicPolicyAdapter(PolicyAdapter):
@@ -51,3 +60,18 @@ class HeuristicPolicyAdapter(PolicyAdapter):
         )
         return meta
 
+
+if __name__ == "__main__":
+    print("[TEST] Running HeuristicPolicyAdapter Verification...")
+    h = HeuristicPolicyAdapter()
+    sample_obs = np.zeros((3, 8), dtype=np.float32)
+    sample_obs[:, 0:3] = np.eye(3)
+    sample_obs[:, 5] = [0.45, 0.70, 0.90]
+    sample_obs[:, 6] = 35.0
+    sample_mask = np.array([1.0, 0.0, 1.0, 0.0, 1.0, 0.0], dtype=np.float32)
+    act = h.predict(sample_obs, sample_mask)
+    assert 0 <= act <= 5
+    assert sample_mask[act] == 1.0
+    print(f"   [OK] Heuristic predicted action: {act} (valid mask: {sample_mask[act] == 1.0})")
+    print(f"   Model metadata: params={h.get_metadata().get('num_parameters')}, format={h.artifact_format}")
+    print("[SUCCESS] Heuristic adapter loaded and executed cleanly!")

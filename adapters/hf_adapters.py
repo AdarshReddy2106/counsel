@@ -1,17 +1,28 @@
 import os
+import sys
+import warnings
+
+# Suppress noisy external gym deprecation warnings from transformers
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", message=".*Gym has been unmaintained.*")
+
+# Ensure repository root is on sys.path for direct execution and package imports
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
 
 os.environ.setdefault("HF_HUB_OFFLINE", "1")
 
-import json
-from collections import deque
-from typing import Any, Deque, Dict, List, Tuple
+import json  # noqa: E402
+from collections import deque  # noqa: E402
+from typing import Any, Deque, Dict, List, Tuple  # noqa: E402
 
-import numpy as np
-import pandas as pd
-import torch
-import torch.nn as nn
-from safetensors.torch import load_model, save_model
-from transformers import (
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+import torch  # noqa: E402
+import torch.nn as nn  # noqa: E402
+from safetensors.torch import load_model, save_model  # noqa: E402
+from transformers import (  # noqa: E402
     DecisionTransformerConfig,
     DecisionTransformerModel,
     PatchTSTConfig,
@@ -19,11 +30,12 @@ from transformers import (
     PatchTSTModel,
 )
 
-from feature_store import FeatureStore
+from feature_store import FeatureStore  # noqa: E402
 
-from .base import PolicyAdapter, apply_action_mask_to_scores
-
-ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+try:
+    from .base import PolicyAdapter, apply_action_mask_to_scores  # noqa: E402
+except ImportError:
+    from adapters.base import PolicyAdapter, apply_action_mask_to_scores  # noqa: E402
 
 
 def _derive_outcome_aware_targets(
@@ -75,6 +87,7 @@ class DecisionTransformerPolicyAdapter(PolicyAdapter):
             registry_dir, "decision_transformer.safetensors"
         )
         self.meta_path = os.path.join(registry_dir, "decision_transformer_meta.json")
+        self.meta: Dict[str, Any] = {}
 
         self.dt_config = DecisionTransformerConfig(
             state_dim=30,
@@ -85,7 +98,7 @@ class DecisionTransformerPolicyAdapter(PolicyAdapter):
             max_ep_len=2048,
             action_tanh=False,
         )
-        self.model = DecisionTransformerModel(self.dt_config)
+        self.model: Any = DecisionTransformerModel(self.dt_config)
         self.loaded_from_hub = False
 
         if force_retrain or not (
@@ -158,15 +171,15 @@ class DecisionTransformerPolicyAdapter(PolicyAdapter):
                 ts_win = np.zeros((k,), dtype=np.int64)
                 am_win = np.zeros((k,), dtype=np.float32)
 
-                s_win[pad_len:] = feat_arr[start : t + 1]
-                r_win[pad_len:, 0] = rtg_arr[start : t + 1]
+                s_win[pad_len:] = feat_arr[start:t + 1]
+                r_win[pad_len:, 0] = rtg_arr[start:t + 1]
                 ts_win[pad_len:] = np.arange(start, t + 1, dtype=np.int64)
                 am_win[pad_len:] = 1.0
 
                 # Previous actions placed in slots before final slot; 0 vector for current query
                 if win_len > 1:
                     prev_acts = act_arr[start:t]
-                    a_win[pad_len : k - 1, :] = np.eye(6, dtype=np.float32)[prev_acts]
+                    a_win[pad_len:k - 1, :] = np.eye(6, dtype=np.float32)[prev_acts]
 
                 states_list.append(s_win)
                 actions_in_list.append(a_win)
@@ -213,7 +226,7 @@ class DecisionTransformerPolicyAdapter(PolicyAdapter):
         for _epoch in range(18):
             perm = torch.randperm(len(s_t))
             for i in range(0, len(s_t), batch_sz):
-                idx = perm[i : i + batch_sz]
+                idx = perm[i:i + batch_sz]
                 opt.zero_grad()
                 out = self.model(
                     states=s_t[idx],
@@ -222,6 +235,7 @@ class DecisionTransformerPolicyAdapter(PolicyAdapter):
                     timesteps=ts_t[idx],
                     attention_mask=am_t[idx],
                 )
+                assert out.action_preds is not None
                 logits = out.action_preds[:, -1, :]
                 loss = (loss_fn(logits, y_t[idx]) * seq_weights[idx]).mean()
                 loss.backward()
@@ -236,6 +250,7 @@ class DecisionTransformerPolicyAdapter(PolicyAdapter):
                 timesteps=ts_t,
                 attention_mask=am_t,
             )
+            assert out_all.action_preds is not None
             preds = torch.argmax(out_all.action_preds[:, -1, :], dim=-1)
             train_acc = float((preds == y_t).float().mean().item())
 
@@ -280,9 +295,9 @@ class DecisionTransformerPolicyAdapter(PolicyAdapter):
         am_win[0, pad_len:] = 1.0
 
         if len(self._actions_buf) > 0:
-            prev_a = list(self._actions_buf)[-(win_len - 1) :] if win_len > 1 else []
+            prev_a = list(self._actions_buf)[-(win_len - 1):] if win_len > 1 else []
             if prev_a:
-                a_win[0, pad_len : k - 1] = np.stack(prev_a)
+                a_win[0, pad_len:k - 1] = np.stack(prev_a)
 
         with torch.inference_mode():
             out = self.model(
@@ -292,6 +307,7 @@ class DecisionTransformerPolicyAdapter(PolicyAdapter):
                 timesteps=torch.from_numpy(ts_win),
                 attention_mask=torch.from_numpy(am_win),
             )
+            assert out.action_preds is not None
             logits = out.action_preds[0, -1].cpu().numpy()
 
         # Proactive high-RTG headroom boost when utilization nears SLO saturation
@@ -318,7 +334,7 @@ class _PatchTSTWithContext(nn.Module):
 
     def __init__(self, pt_config: PatchTSTConfig):
         super().__init__()
-        self.patchtst = PatchTSTForClassification(pt_config)
+        self.patchtst: Any = PatchTSTForClassification(pt_config)
         self.ctx_proj = nn.Sequential(
             nn.Linear(6 + 9, 32),  # 6-way PatchTST logits + (3 target flags + 6 mask bits)
             nn.ReLU(),
@@ -328,6 +344,7 @@ class _PatchTSTWithContext(nn.Module):
     def forward(self, past_values: torch.Tensor, ctx: torch.Tensor) -> torch.Tensor:
         pt_out = self.patchtst(past_values=past_values)
         base_logits = pt_out.prediction_logits
+        assert base_logits is not None
         return base_logits + self.ctx_proj(torch.cat([base_logits, ctx], dim=-1))
 
 
@@ -346,6 +363,7 @@ class PatchTSTPolicyAdapter(PolicyAdapter):
         os.makedirs(registry_dir, exist_ok=True)
         self.weights_path = os.path.join(registry_dir, "patchtst.safetensors")
         self.meta_path = os.path.join(registry_dir, "patchtst_meta.json")
+        self.meta: Dict[str, Any] = {}
 
         self.pt_config = PatchTSTConfig(
             num_input_channels=self.num_channels,
@@ -358,7 +376,7 @@ class PatchTSTPolicyAdapter(PolicyAdapter):
             ffn_dim=256,
             num_targets=6,
         )
-        self.net = _PatchTSTWithContext(self.pt_config)
+        self.net: Any = _PatchTSTWithContext(self.pt_config)
         self.loaded_from_hub = False
 
         if force_retrain or not (
@@ -420,7 +438,7 @@ class PatchTSTPolicyAdapter(PolicyAdapter):
 
             for t in range(0, ep_len, 2):
                 start = max(0, t - win + 1)
-                seg = ch_arr[start : t + 1]
+                seg = ch_arr[start:t + 1]
                 if len(seg) < win:
                     # Left-pad with earliest step in episode
                     pad = np.repeat(seg[:1], win - len(seg), axis=0)
@@ -463,7 +481,7 @@ class PatchTSTPolicyAdapter(PolicyAdapter):
         for _epoch in range(15):
             perm = torch.randperm(len(p_t))
             for i in range(0, len(p_t), batch_sz):
-                idx = perm[i : i + batch_sz]
+                idx = perm[i:i + batch_sz]
                 opt.zero_grad()
                 logits = self.net(p_t[idx], c_t[idx])
                 loss = (loss_fn(logits, y_t[idx]) * w_t[idx]).mean()
@@ -520,3 +538,34 @@ class PatchTSTPolicyAdapter(PolicyAdapter):
         out = super().get_metadata()
         out.update(self.meta)
         return out
+
+
+if __name__ == "__main__":
+    print("[TEST] Running Hugging Face Policy Adapters Verification...")
+
+    # Test sample telemetry: 3 microservices x 8 features
+    sample_obs = np.zeros((3, 8), dtype=np.float32)
+    sample_obs[:, 0:3] = np.eye(3)
+    sample_obs[:, 5] = [0.45, 0.70, 0.90]  # DB is high utilization
+    sample_obs[:, 6] = 35.0  # High arrival rate
+    sample_mask = np.array([1.0, 0.0, 1.0, 0.0, 1.0, 0.0], dtype=np.float32)
+
+    # 1. Test Decision Transformer
+    print("-> Loading DecisionTransformerPolicyAdapter...")
+    dt = DecisionTransformerPolicyAdapter()
+    dt_act = dt.predict(sample_obs, sample_mask)
+    assert 0 <= dt_act <= 5
+    assert sample_mask[dt_act] == 1.0
+    print(f"   [OK] DecisionTransformer predicted action: {dt_act} (valid mask: {sample_mask[dt_act] == 1.0})")
+    print(f"   Model metadata: params={dt.meta.get('num_parameters')}, format={dt.artifact_format}")
+
+    # 2. Test PatchTST
+    print("-> Loading PatchTSTPolicyAdapter...")
+    pt = PatchTSTPolicyAdapter()
+    pt_act = pt.predict(sample_obs, sample_mask)
+    assert 0 <= pt_act <= 5
+    assert sample_mask[pt_act] == 1.0
+    print(f"   [OK] PatchTST predicted action: {pt_act} (valid mask: {sample_mask[pt_act] == 1.0})")
+    print(f"   Model metadata: params={pt.meta.get('num_parameters')}, format={pt.artifact_format}")
+
+    print("[SUCCESS] All Hugging Face adapters loaded, verified, and executed cleanly!")

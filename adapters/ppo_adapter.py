@@ -1,13 +1,19 @@
 import os
+import sys
 from typing import Any, Dict
 
-import numpy as np
-import torch
-from safetensors.torch import save_model
-
-from .base import PolicyAdapter
-
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
+import numpy as np  # noqa: E402
+import torch  # noqa: E402
+from safetensors.torch import save_model  # noqa: E402
+
+try:
+    from .base import PolicyAdapter  # noqa: E402
+except ImportError:
+    from adapters.base import PolicyAdapter  # noqa: E402
 
 
 class PPOPolicyAdapter(PolicyAdapter):
@@ -61,3 +67,18 @@ class PPOPolicyAdapter(PolicyAdapter):
         )
         return meta
 
+
+if __name__ == "__main__":
+    print("[TEST] Running PPOPolicyAdapter Verification...")
+    ppo = PPOPolicyAdapter()
+    sample_obs = np.zeros((3, 8), dtype=np.float32)
+    sample_obs[:, 0:3] = np.eye(3)
+    sample_obs[:, 5] = [0.45, 0.70, 0.90]
+    sample_obs[:, 6] = 35.0
+    sample_mask = np.array([1.0, 0.0, 1.0, 0.0, 1.0, 0.0], dtype=np.float32)
+    act = ppo.predict(sample_obs, sample_mask)
+    assert 0 <= act <= 5
+    assert sample_mask[act] == 1.0
+    print(f"   [OK] PPO predicted action: {act} (valid mask: {sample_mask[act] == 1.0})")
+    print(f"   Model metadata: params={ppo.num_params}, format={ppo.artifact_format}")
+    print("[SUCCESS] PPO adapter loaded and executed cleanly!")

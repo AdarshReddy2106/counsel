@@ -1,17 +1,24 @@
 import hashlib
 import json
 import os
+import sys
 from typing import Any, Dict
 
-import joblib
-import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-
-from feature_store import FeatureStore
-
-from .base import PolicyAdapter, apply_action_mask_to_scores
-
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
+import joblib  # noqa: E402
+import numpy as np  # noqa: E402
+from sklearn.ensemble import RandomForestClassifier  # noqa: E402
+
+from feature_store import FeatureStore  # noqa: E402
+
+try:
+    from .base import PolicyAdapter, apply_action_mask_to_scores  # noqa: E402
+except ImportError:
+    from adapters.base import PolicyAdapter, apply_action_mask_to_scores  # noqa: E402
+
 
 
 def _sha256(path: str) -> str:
@@ -53,7 +60,7 @@ class RandomForestPolicyAdapter(PolicyAdapter):
         x_train = np.hstack([x_train_obs, x_train_mask])
         y_train_breach = df_train["slo_breach"].astype(int).to_numpy()
 
-        df_val = df_full.iloc[cutoff_idx + 1 :]
+        df_val = df_full.iloc[cutoff_idx + 1:]
         x_val = np.hstack(
             [
                 df_val[store.OBS_COLUMNS].to_numpy(dtype=np.float32),
@@ -136,3 +143,19 @@ class RandomForestPolicyAdapter(PolicyAdapter):
         out = super().get_metadata()
         out.update(self.meta)
         return out
+
+
+if __name__ == "__main__":
+    print("[TEST] Running RandomForestPolicyAdapter Verification...")
+    rf = RandomForestPolicyAdapter()
+    sample_obs = np.zeros((3, 8), dtype=np.float32)
+    sample_obs[:, 0:3] = np.eye(3)
+    sample_obs[:, 5] = [0.45, 0.70, 0.90]
+    sample_obs[:, 6] = 35.0
+    sample_mask = np.array([1.0, 0.0, 1.0, 0.0, 1.0, 0.0], dtype=np.float32)
+    act = rf.predict(sample_obs, sample_mask)
+    assert 0 <= act <= 5
+    assert sample_mask[act] == 1.0
+    print(f"   [OK] RandomForest predicted action: {act} (valid mask: {sample_mask[act] == 1.0})")
+    print(f"   Model metadata: trees={rf.meta.get('n_estimators')}, sha256={rf.meta.get('sha256')[:12]}...")
+    print("[SUCCESS] RandomForest adapter loaded and executed cleanly!")
