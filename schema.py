@@ -1,5 +1,20 @@
+"""
+Telemetry Data Contract & Runtime Schema Validation
+Authored by Member 1 (Environment, Feature View & Data Contracts)
+
+Enforces runtime boundary constraints for the COUNSEL cloud autoscaler:
+- State Matrix: (ncomp, ncomp + 5) = (3, 8) shape (24 finite floats)
+  - Columns 0..2: Spectral Adjacency Matrix (Graph Topology in [0, 1])
+  - Columns 3..4: Normalized CPU & Memory Resource Ratios (in [-10, 10])
+  - Column 5: Component Utilization (in [0.0, 2.0])
+  - Column 6: Workload Arrival Rate (in [0.0, Inf))
+  - Column 7: Target Component Indicator (one-hot active flag)
+- Action Mask: Shape (6,) with binary values {0.0, 1.0}, enforcing Action 0 ('none') == 1.0
+- Config Guard: Solves the YAML Norway Problem (unquoted 'NO'/'off' boolean coercion)
+"""
+
 import os
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import yaml
@@ -11,16 +26,21 @@ DEFAULT_CONFIG_PATH = os.path.join(
 
 
 class DataContractError(ValueError):
-    """Raised when environment observations or actions fail validation."""
+    """Raised when environment observations, configurations, or actions fail validation."""
 
 
-def load_config(config_path: str = DEFAULT_CONFIG_PATH) -> Dict:
+def load_config(config_path: str = DEFAULT_CONFIG_PATH) -> Dict[str, Any]:
+    """
+    Load and validate central configuration file.
+    Enforces strict typing against YAML 1.1 boolean coercion bugs ('Norway Problem').
+    """
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Configuration file not found: {config_path}")
 
     with open(config_path, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
+    # Validate against YAML Norway Problem (unquoted 'NO' parsed as boolean False)
     project_cfg = cfg.get("project", {})
     for key in ("datacenter_country_code", "emergency_fallback_mode"):
         val = project_cfg.get(key)
@@ -39,6 +59,9 @@ def load_config(config_path: str = DEFAULT_CONFIG_PATH) -> Dict:
 
 
 class ObservationContract(BaseModel):
+    """
+    Pydantic schema enforcing Apache Avro compatibility with default values.
+    """
     obs_flat: List[float] = Field(...)
     mask: List[float] = Field(
         default_factory=lambda: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
@@ -47,6 +70,19 @@ class ObservationContract(BaseModel):
     act_type: int = Field(default=1)
     act_comp: int = Field(default=0)
     slo_latency_ms: float = Field(default=150.0)
+
+
+def get_telemetry_columns_description() -> List[Dict[str, str]]:
+    """Return explicit definitions of all 8 telemetry measurements."""
+    return [
+        {"col": "0..2", "name": "Adjacency Matrix", "bounds": "[0.0, 1.0]", "desc": "Inter-service network topology"},
+        {"col": "3", "name": "Normalized CPU", "bounds": "[-10.0, 10.0]", "desc": "Allocated CPU ratio relative to budget"},
+        {"col": "4", "name": "Normalized Memory", "bounds": "[-10.0, 10.0]", "desc": "Allocated RAM ratio relative to budget"},
+        {"col": "5", "name": "Component Utilization", "bounds": "[0.0, 2.0]", "desc": "Live CPU/Mem load on component"},
+        {"col": "6", "name": "Arrival Rate", "bounds": "[0.0, Inf)", "desc": "Incoming workload in requests per second"},
+        {"col": "7", "name": "Target Component", "bounds": "{0.0, 1.0}", "desc": "One-hot active scaling candidate"},
+    ]
+
 
 
 def validate_observation(

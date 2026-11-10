@@ -1,36 +1,45 @@
+# ==============================================================================
+# COUNSEL MLOps Central Configuration
+# Managed by Member 1 (Environment, Feature Store & Data Contracts)
+#
+# NOTE: All string literals below are explicitly quoted to solve the YAML 1.1
+# "Norway Problem" (where unquoted NO, off, on, yes parse as booleans).
+# ==============================================================================
+
 project:
   name: "counsel-mlops"
   version: "1.0.0"
   schema_version: "1.0.0"
-  datacenter_country_code: "NO"
-  emergency_fallback_mode: "off"
+  datacenter_country_code: "NO"   # Quoted to prevent boolean False conversion
+  emergency_fallback_mode: "off"  # Quoted to prevent boolean False conversion
   experiment_name: "std"
 
 environment:
   mode: "synthetic"
-  nconf: 5
-  ncomp: 3
+  nconf: 5                        # 5 scaling configurations per component
+  ncomp: 3                        # 3 microservices: Firewall, WebServer, Database
   components:
     - "Firewall"
     - "WebServer"
     - "Database"
   flavors:
-    - "none"
-    - "2"
-    - "5"
-    - "10"
-    - "13"
-    - "19"
+    - "none"                      # Action 0: Do nothing / retain state
+    - "2"                         # Action 1: Flavor 2 instance
+    - "5"                         # Action 2: Flavor 5 instance
+    - "10"                        # Action 3: Flavor 10 instance
+    - "13"                        # Action 4: Flavor 13 instance
+    - "19"                        # Action 5: Flavor 19 instance
   budget:
-    - 2500
-    - 3600
-  slo_latency_ms: 150.0
+    - 2500                        # CPU capacity budget limit
+    - 3600                        # RAM capacity budget limit (MB)
+  slo_latency_ms: 150.0           # Production SLO latency threshold
   train_slo_latency_ms: 200.0
   overrun_lim: 0.20
   knob: 0.05
   steps_per_epoch: 1000
   load_server_host: "127.0.0.1"
   load_server_port: 8000
+
 
 policy:
   active_policy: "ppo"
