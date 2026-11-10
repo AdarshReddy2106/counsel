@@ -141,7 +141,7 @@ Retry with exponential backoff (`delay = base × factor^attempt`) handles transi
 
 ---
 
-## Quickstart
+## Usage & Commands
 
 ### Prerequisites
 
@@ -149,31 +149,139 @@ Retry with exponential backoff (`delay = base × factor^attempt`) handles transi
 pip install -r requirements.txt
 ```
 
-### Three commands verify the whole system
+---
 
-**1. Run the full pipeline**
+### Run Individual Model Adapters
+
+Each adapter can be run standalone to verify it loads and predicts correctly:
+
+```bash
+# Hugging Face models (PatchTST, Decision Transformer)
+python adapters/hf_adapters.py
+
+# Scikit-learn model (Random Forest)
+python adapters/sklearn_adapter.py
+
+# Rule-based policy
+python adapters/heuristic_adapter.py
+
+# GCN-PPO (online RL baseline)
+python adapters/ppo_adapter.py
+```
+
+---
+
+### Inspect the Model Registry
+
+Prints all 5 registered models — file formats, parameter counts, and artifact paths:
+
+```bash
+python adapters/registry.py
+```
+
+---
+
+### Multi-Model Comparative Benchmark
+
+Runs any combination of models against the synthetic environment under identical traffic conditions:
+
+```bash
+# Benchmark all 5 models across 20 episodes
+python evaluate_swap.py \
+  --policies ppo heuristic random_forest decision_transformer patchtst \
+  --episodes 20
+
+# Benchmark a single model (e.g. Decision Transformer)
+python evaluate_swap.py --policies decision_transformer --episodes 10
+```
+
+---
+
+### End-to-End Orchestrated MLOps Pipeline
+
+Executes all 6 pipeline stages sequentially via Kahn's Topological Sort:  
+`Contract Verification → Feature Store → Multi-Model Benchmark → SRE Monitor → Model Card → Summary`
 
 ```bash
 python pipeline_dag.py
 ```
 
-Kahn's sort resolves dependencies, runs contracts, scores all 5 models, and checks drift. Expect 6/6 tasks in ~10 s and `RELEASE_CERTIFIED`.
+Expect 6/6 tasks completed in ~10 s with status `RELEASE_CERTIFIED`.
 
-**2. Run the quality gates**
+---
+
+### Automated Quality Gate Test Suite (14 Tests)
+
+Covers schema contracts, adapter interfaces, LRU caching, PSI math, and release gates:
 
 ```bash
 pytest tests/test_all.py -v
 ```
 
-14 tests cover Norway safety, NaN/Inf rejection, masks, 5 adapters, LRU cache, and the release gate. Expect 14 passed in ~34 s.
+Expect **14 / 14 passed** in ~34 s.
 
-**3. Open the SRE dashboard**
+---
+
+### Build & Update Feature Store
+
+Generates `data/feature_store/offline_store.parquet` with time-travel snapshots:
+
+```bash
+python feature_store.py
+```
+
+---
+
+### SRE Golden Signals & Drift Monitor
+
+Calculates PSI, error-budget burn rate, and saves the drift report chart:
 
 ```bash
 python monitor.py
 ```
 
-Computes the golden signals, error-budget burn, and PSI; writes `charts/psi_drift_report.png`.
+Output: `charts/psi_drift_report.png`
+
+---
+
+### Production Serving API & Dynamic Hot-Swapping
+
+**Step 1 — Start the server:**
+
+```bash
+python app.py 127.0.0.1 8080
+```
+
+**Step 2 — Send requests from another terminal:**
+
+```bash
+# Health check
+curl http://127.0.0.1:8080/health
+
+# SRE metrics & cache hit ratio
+curl http://127.0.0.1:8080/metrics
+
+# Send a telemetry prediction request
+curl -X POST http://127.0.0.1:8080/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "obs": [
+      [1,0,0,0,0,0.85,50,150],
+      [0,1,0,0,0,0.60,50,150],
+      [0,0,1,0,0,0.75,50,150]
+    ],
+    "mask": [1,1,1,1,1,1]
+  }'
+
+# Zero-downtime hot-swap — switch to Decision Transformer
+curl -X POST http://127.0.0.1:8080/swap/decision_transformer
+
+# Hot-swap to PatchTST
+curl -X POST http://127.0.0.1:8080/swap/patchtst
+
+# Hot-swap back to PPO
+curl -X POST http://127.0.0.1:8080/swap/ppo
+```
 
 ---
 
