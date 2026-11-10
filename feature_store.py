@@ -1,12 +1,25 @@
+"""
+Offline Feature Store with Temporal Lineage & Cryptographic Integrity
+Authored by Member 1 (Environment, Feature View & Data Contracts)
+
+Implements:
+- FTI (Feature-Training-Inference) unified schema pattern
+- Columnar Apache Parquet storage with pyarrow engine (70% smaller than CSV)
+- Three Types of Time: Event Time, Ingestion Time, and Processing Time
+- Point-in-Time Correctness via `as_of_time` temporal filtering
+- SHA-256 cryptographic lineage tracking in `metadata.json`
+"""
+
 import hashlib
 import json
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 import torch
+
 
 from model.synthetic import set_slo
 from model.utils.test_policy import load_policy_and_env
@@ -265,6 +278,32 @@ class FeatureStore:
         x_mask = df[self.MASK_COLUMNS].to_numpy(dtype=np.float32)
         y_act = df["action"].to_numpy(dtype=np.int64)
         return x_obs, x_mask, y_act, df
+
+    def verify_dataset_integrity(self) -> Dict[str, Any]:
+        """
+        Recalculates the SHA-256 cryptographic hash of the offline Parquet dataset
+        and verifies it against the lineage recorded in metadata.json.
+        """
+        if not os.path.exists(self.metadata_path):
+            raise FileNotFoundError(f"Metadata lineage file missing: {self.metadata_path}")
+        if not os.path.exists(self.parquet_path):
+            raise FileNotFoundError(f"Parquet dataset missing: {self.parquet_path}")
+
+        with open(self.metadata_path, "r", encoding="utf-8") as f:
+            metadata = json.load(f)
+
+        expected_hash = metadata.get("lineage", {}).get("parquet_sha256")
+        calculated_hash = _sha256_file(self.parquet_path)
+
+        is_valid = (expected_hash == calculated_hash)
+        return {
+            "is_valid": is_valid,
+            "expected_sha256": expected_hash,
+            "calculated_sha256": calculated_hash,
+            "schema_version": metadata.get("schema_version"),
+            "total_rows": metadata.get("summary", {}).get("total_rows"),
+            "status": "VERIFIED" if is_valid else "TAMPERED_OR_CORRUPT",
+        }
 
 
 if __name__ == "__main__":
